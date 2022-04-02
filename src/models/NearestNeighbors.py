@@ -22,12 +22,12 @@ def manhattan(a: np.ndarray, b: np.ndarray):
 class NearestNeighbors(BaseClassifier):
 
     """
-    NearestNeighbors algorithm.
+    Nearest Neighbors algorithm.
 
     Arguments:
-        k
-        metric
-        n_jobs
+        k: number of neighbors to use;
+        metric: name of or a function to calculate the distance between two instances;
+        n_jobs: number of treads to use (parallelism).
     """
 
     def __init__(
@@ -71,11 +71,11 @@ class NearestNeighbors(BaseClassifier):
     def fit(self, X: np.ndarray, y: np.ndarray):
 
         """
-        Fits the model using the provided training data (X, y).
+        Fit the model using the provided training data (X, y).
 
         Arguments:
-            X:;
-            y:.
+            X: matrix of training instances' features of shape (n_instances, n_features);
+            y: instances' labels of shape (n_instances).
 
         Returns:
             itself.
@@ -99,7 +99,7 @@ class NearestNeighbors(BaseClassifier):
         Predict labels for the given set (X).
 
         Arguments:
-            X: ;
+            X: matrix of instances' features to evaluate of shape (n_instances, n_features);
             verbose: flag to indicate whether to show a progress bar or not.
 
         Returns:
@@ -126,13 +126,13 @@ class NearestNeighbors(BaseClassifier):
 
         return predictions
 
-    def predict_proba(self, X: np.ndarray, verbose: bool = True):
+    def predict_proba(self, X: np.ndarray, verbose: bool = True) -> np.ndarray:
 
         """
         Predict class labels probabilities for the given set (X).
 
         Arguments:
-            X: ;
+            X: matrix of instances' features to evaluate of shape (n_instances, n_features);
             verbose: flag to indicate whether to show a progress bar or not.
 
         Returns:
