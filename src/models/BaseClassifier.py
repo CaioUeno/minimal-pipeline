@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import numpy as np
 
 
@@ -35,3 +36,11 @@ class BaseClassifier:
             )
 
         return True
+
+    @abstractmethod
+    def save(self, path: str) -> bool:
+        pass
+
+    @abstractmethod
+    def load(self, path: str):
+        pass
