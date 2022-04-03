@@ -17,17 +17,17 @@ class GaussianNaiveBayes(BaseClassifier):
 
     def fit(self, X: np.ndarray, y: np.ndarray):
 
-        # """
-        # Fit the model using the provided training data (X, y).
-        # Calculate
+        """
+        Fit the model using the provided training data (X, y).
+        Estimate priors if not provided and for each class calculate mean and variance of features.
 
-        # Arguments:
-        #     X: matrix of training instances' features of shape (n_instances, n_features);
-        #     y: instances' labels of shape (n_instances).
+        Arguments:
+            X: matrix of training instances' features of shape (n_instances, n_features);
+            y: instances' labels of shape (n_instances).
 
-        # Returns:
-        #     itself.
-        # """
+        Returns:
+            itself.
+        """
 
         # check whether input is valid or not
         self.check_X_y(X, y)
@@ -51,37 +51,42 @@ class GaussianNaiveBayes(BaseClassifier):
 
     def predict_proba(self, X: np.ndarray) -> np.ndarray:
 
-        """_summary_
+        """
+        Predict class labels probabilities for the given set (X).
 
-        Args:
+        Arguments:
             X: matrix of instances' features to evaluate of shape (n_instances, n_features).
 
         Returns:
-            np.ndarray: _description_
+            predictions: class labels probabilities for each instance on X.
         """
 
         likelihood = np.zeros((X.shape[0], len(self.classes)), dtype=float)
 
         for c in self.classes:
-            print(f"class {c}")
+
             lc = np.exp(-0.5 * (X - self.means[c, :]) ** 2 / (self.vars[c, :] ** 2))
             lc *= 1 / (self.vars[c, :] * np.sqrt(2 * np.pi))
             likelihood[:, c] = lc.prod(axis=1)
-            print("--------")
 
-        proba = likelihood * self.priors
+        # since P(x) is not calculated, use softmax to
+        # ensure a probability distribution (sum up to 1)
+        predictions = softmax(likelihood * self.priors, axis=1)
 
-        return softmax(proba, axis=1)
+        return predictions
 
     def predict(self, X: np.ndarray) -> np.ndarray:
 
-        """_summary_
+        """
+        Predict labels for the given set (X).
 
-        Args:
+        Arguments:
             X: matrix of instances' features to evaluate of shape (n_instances, n_features).
 
         Returns:
-            np.ndarray: _description_
+            predictions: predicted class labels for each instance on X.
         """
 
-        return self.predict_proba(X).argmax(axis=1)
+        predictions = self.predict_proba(X).argmax(axis=1)
+
+        return predictions

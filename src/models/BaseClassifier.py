@@ -2,10 +2,26 @@ import numpy as np
 
 
 class BaseClassifier:
+
+    """
+    Base class to share common methods.
+    """
+
     def __init__(self):
         pass
 
-    def check_X_y(self, X, y):
+    def check_X_y(self, X, y) -> bool:
+
+        """
+        Check whether inputs are valid.
+
+        Raises:
+            TypeError: if one of the inputs is not of type np.ndarray;
+            ValueError: _description_
+
+        Returns:
+            True
+        """
 
         if not isinstance(X, np.ndarray):
             raise TypeError(f"X must be of type np.ndarray but is {type(X)}")
