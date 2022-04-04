@@ -46,6 +46,8 @@ class EvaluationTask(luigi.Task):
 
         X, y = evaluation_df.drop("label", axis=1), evaluation_df["label"].copy()
 
+        models = [GaussianNaiveBayes(), NearestNeighbors(k=5, metric="euclidean", n_jobs=-1)]
+
         logger.info(f"")
         skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=0)
 
@@ -57,43 +59,22 @@ class EvaluationTask(luigi.Task):
             X_train, X_test = X.iloc[train_index, :], X.iloc[test_index, :]
             y_train, y_test = y[train_index], y[test_index]
 
-            # models to evaluate
-            gnb = GaussianNaiveBayes()
-            nn = NearestNeighbors(k=5, metric="euclidean", n_jobs=-1)
+            for model in models:
 
-            # fit models
-            gnb.fit(X=X_train.values, y=y_train.values)
-            nn.fit(X=X_train.values, y=y_train.values)
+                model.fit(X=X_train.values, y=y_train.values)
+                preds = model.predict(X=X_test.values)
 
-            # predictions
-            gnb_preds = gnb.predict(X=X_test.values)
-            nn_preds = nn.predict(X=X_test.values, verbose=False)
-
-            # store metrics
-            metrics.extend(
-                [
-                    {
-                        "classifier": "GaussianNaiveBayes",
+                metrics.append({
+                        "classifier": type(model).__name__,
                         "fold": fold,
                         "f1_score": f1_score(
                             y_true=y_test,
-                            y_pred=gnb_preds,
+                            y_pred=preds,
                             average="weighted",
                             zero_division=0,
                         ),
-                    },
-                    {
-                        "classifier": "NearestNeighbors",
-                        "fold": fold,
-                        "f1_score": f1_score(
-                            y_true=y_test,
-                            y_pred=nn_preds,
-                            average="weighted",
-                            zero_division=0,
-                        ),
-                    },
-                ]
-            )
+                    })
+
 
         metrics = pd.DataFrame(metrics)
         # print(metrics)
