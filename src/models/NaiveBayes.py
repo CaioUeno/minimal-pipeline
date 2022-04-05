@@ -14,6 +14,7 @@ class GaussianNaiveBayes(BaseClassifier):
 
     def __init__(self, priors: np.ndarray = None):
         self.priors = priors
+        self.fitted = False
 
     def fit(self, X: np.ndarray, y: np.ndarray):
 
@@ -46,6 +47,8 @@ class GaussianNaiveBayes(BaseClassifier):
         for c in self.classes:
             self.means[c, :] = X[y == c, :].mean()
             self.vars[c, :] = X[y == c, :].std()
+
+        self.fitted = True
 
         return self
 
@@ -90,3 +93,37 @@ class GaussianNaiveBayes(BaseClassifier):
         predictions = self.predict_proba(X).argmax(axis=1)
 
         return predictions
+
+    def save(self, path: str) -> bool:
+
+        super().save(path)
+
+        with open(f"{path}/priors.npy", "wb") as f:
+            np.save(f, self.priors)
+
+        with open(f"{path}/classes.npy", "wb") as f:
+            np.save(f, self.classes)
+
+        with open(f"{path}/means.npy", "wb") as f:
+            np.save(f, self.means)
+
+        with open(f"{path}/vars.npy", "wb") as f:
+            np.save(f, self.vars)
+
+        return True
+
+    def load(self, path: str):
+
+        with open(f"{path}/priors.npy", "rb") as f:
+            self.priors = np.load(f)
+
+        with open(f"{path}/classes.npy", "rb") as f:
+            self.classes = np.load(f)
+
+        with open(f"{path}/means.npy", "rb") as f:
+            self.means = np.load(f)
+
+        with open(f"{path}/vars.npy", "rb") as f:
+            self.vars = np.load(f)
+
+        return self

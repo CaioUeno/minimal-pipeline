@@ -1,4 +1,8 @@
 from abc import abstractmethod
+import os
+from shutil import make_archive
+from zipfile import ZipFile
+
 import numpy as np
 
 
@@ -39,7 +43,31 @@ class BaseClassifier:
 
     @abstractmethod
     def save(self, path: str) -> bool:
-        pass
+
+        if not self.fitted:
+            raise ValueError(f"Classifier must be fitted before it can be saved.")
+
+        if not os.path.isdir(path):
+            os.mkdir(path)
+            
+        return True
+
+    @abstractmethod
+    def compress(self, path: str) -> str:
+        return make_archive(path, "zip", path)
+
+    @abstractmethod
+    def uncompress(self, path: str) -> str:
+
+        if ".zip" not in path:
+            return ""
+
+        uncompressed_path = path.split(".zip")[0]
+
+        with ZipFile(path, "r") as zip:
+            zip.extractall(uncompressed_path)
+
+        return uncompressed_path
 
     @abstractmethod
     def load(self, path: str):
