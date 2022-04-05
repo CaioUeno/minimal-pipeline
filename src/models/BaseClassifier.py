@@ -5,6 +5,14 @@ from zipfile import ZipFile
 
 import numpy as np
 
+class NotMatchingLengthError(Exception):
+    """Raised when X and y have different lengths."""
+    pass
+
+class FitError(Exception):
+    """Raised when classifier was not fitted (some actions require it)."""
+    pass
+
 
 class BaseClassifier:
 
@@ -35,28 +43,25 @@ class BaseClassifier:
             raise TypeError(f"y must be of type np.ndarray but is {type(y)}")
 
         if len(X) != len(y):
-            raise ValueError(
+            raise NotMatchingLengthError(
                 f"X and y must have same length: X ({len(X)}) and y ({len(y)})"
             )
 
         return True
 
-    @abstractmethod
     def save(self, path: str) -> bool:
 
         if not self.fitted:
-            raise ValueError(f"Classifier must be fitted before it can be saved.")
+            raise FitError(f"Classifier must be fitted before it can be saved.")
 
         if not os.path.isdir(path):
             os.mkdir(path)
             
         return True
 
-    @abstractmethod
     def compress(self, path: str) -> str:
         return make_archive(path, "zip", path)
-
-    @abstractmethod
+        
     def uncompress(self, path: str) -> str:
 
         if ".zip" not in path:
