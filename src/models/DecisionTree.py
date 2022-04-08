@@ -4,30 +4,46 @@ from src.models.BaseClassifier import BaseClassifier
 
 
 class Node:
-    def __init__(self, feature: int = None, threshold: float = None):
+    def __init__(
+        self,
+        feature: int = None,
+        threshold: float = None,
+        label: int = None,
+        isleaf: bool = None,
+    ):
 
         self.left = None
         self.right = None
         self.feature = feature
         self.threshold = threshold
-        self.label = None
+        self.label = label
+        self.isleaf = isleaf
+
+    def set_left(self, node):
+        self.left = node
+
+    def set_right(self, node):
+        self.right = node
 
     def predict(self, x):
 
         if not self.label is None:
             return self.label
 
-        if x[self.feature < self.threshold]:
+        if x[self.feature] < self.threshold:
             return self.left.predict(x)
         else:
             return self.right.predict(x)
 
+    def inorder(self):
 
-# class Tree:
-#     def __init__(self):
-#         pass
-
-#     def
+        print(f" feature {self.feature}")
+        print(f"threshold {self.threshold}")
+        print(f"Label {self.label}")
+        if self.left:
+            self.left.inorder()
+        if self.right:
+            self.left.inorder()
 
 
 class DecisionTree(BaseClassifier):
@@ -46,71 +62,84 @@ class DecisionTree(BaseClassifier):
         _, counts = np.unique(y, return_counts=True)
         p = counts / len(counts)
 
-        return -(p * np.log(p)).sum()
+        return -(p @ np.log(p).T)
 
-    def build_node(self, X, y):
+    def build_node(
+        self, X: np.ndarray, y: np.ndarray, features: np.ndarray, heigth: int = None
+    ):
 
+        # no data
         if len(X) == 0:
             return None
 
+        # only one class
         if len(np.unique(y)) == 1:
-            print(np.unique(y)[0])
-            node = Node()
-            node.label = np.unique(y)[0]
-            return node
+            return Node(label=np.unique(y)[0], isleaf=True)
 
+        # two or more classes
         else:
 
-            if len(self.available_features) == 0:
-                return None
+            # no more features available - return leaf node using most frequent label
+            if len(features) == 0:
+                return Node(label=np.argmax(np.bincount(y)), isleaf=True)
 
-            global_igs = []
-            for feature in self.available_features:
+            best_splitpoints = {}
 
-                min_value, max_value, pace = (
-                    min(X[:, feature]),
-                    max(X[:, feature]),
-                    min(np.diff(np.sort(X[:, feature]))),
-                )
+            # iterate over features and thresholds
+            for feature in features:
 
-                f_igs = []
-                # information_gain
-                for value in np.linspace(min_value, max_value, len(X) + 1):
-                    f_igs.append(
-                        DecisionTree.entropy(y)
-                        - sum(
-                            [
-                                DecisionTree.entropy(y[X[:, feature] < value]),
-                                DecisionTree.entropy(y[X[:, feature] >= value]),
-                            ]
-                        )
+                min_value, max_value = min(X[:, feature]), max(X[:, feature])
+                n_splitpoints = len(X) + 1
+                splitpoints = np.linspace(min_value, max_value, n_splitpoints)
+                information_gain = np.empty(n_splitpoints)
+
+                # iterate over possible split points
+                for idx, splitpoint in enumerate(splitpoints):
+
+                    # calculate information gain
+                    information_gain[idx] = DecisionTree.entropy(y) - sum(
+                        [
+                            DecisionTree.entropy(y[X[:, feature] < splitpoint]),
+                            DecisionTree.entropy(y[X[:, feature] >= splitpoint]),
+                        ]
                     )
 
-                global_igs.append(
-                    {
-                        "feature": feature,
-                        "value": np.linspace(min_value, max_value, len(X) + 1)[
-                            np.argmax(f_igs)
-                        ],
-                        "ig": np.max(f_igs),
-                    }
-                )
+                # splitpoint that maximizes information gain
+                best_splitpoints[feature] = splitpoints[np.argmax(information_gain)]
 
-            d = max(global_igs, key=lambda item: item["ig"])
-            f = d["feature"]
-            t = d["value"]
-            node = Node(feature=f, threshold=t)
-            self.available_features.remove(f)
-            node.left = self.build_node(X[X[:, f] < t], y[X[:, f] < t])
-            node.right = self.build_node(X[X[:, f] >= t], y[X[:, f] >= t])
+            feature = max(best_splitpoints, key=best_splitpoints.get)
+            splitpoint = best_splitpoints[feature]
+
+            # create respective node
+            node = Node(feature=feature, threshold=splitpoint, isleaf=False)
+
+            # check if there is data to build children
+            if (X[:, feature] < splitpoint).sum() > 0:
+
+                left_child = self.build_node(
+                    X[X[:, feature] < splitpoint],
+                    y[X[:, feature] < splitpoint],
+                    list(
+                        filter(lambda f: f != feature, features)
+                    ),  # remove selected feature from available list
+                )
+                node.set_left(left_child)
+
+            if (X[:, feature] >= splitpoint).sum() > 0:
+                right_child = self.build_node(
+                    X[X[:, feature] >= splitpoint],
+                    y[X[:, feature] >= splitpoint],
+                    list(
+                        filter(lambda f: f != feature, features)
+                    ),  # remove selected feature from available list
+                )
+                node.set_right(right_child)
 
         return node
 
     def fit(self, X: np.ndarray, y: np.ndarray):
 
-        self.available_features = list(range(X.shape[1]))
-
-        self.tree = self.build_node(X, y)
+        self.tree = self.build_node(X, y, list(range(X.shape[1])))
 
         return self
 
