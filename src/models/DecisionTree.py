@@ -1,11 +1,18 @@
+from typing import List
 import numpy as np
 
 from src.models.BaseClassifier import BaseClassifier
 
 
+class NoDataError(Exception):
+    """Raised when the input data is empty."""
+
+    pass
+
+
 class Node:
 
-    """Base class to share common methods."""
+    """Base Node class."""
 
     def __init__(self):
         pass
@@ -20,8 +27,9 @@ class LeafNode(Node):
         label (int): label to return if instance reaches it.
     """
 
-    def __init__(self, label: int):
+    def __init__(self, label: int, class_proportions: np.ndarray):
         self.label = label
+        self.class_proportions = class_proportions
 
     def predict(self, x: np.ndarray) -> int:
 
@@ -37,6 +45,20 @@ class LeafNode(Node):
 
         return self.label
 
+    def predict_proba(self, x: np.ndarray) -> np.ndarray:
+
+        """
+        Predict class probabilities of a single instance.
+
+        Args:
+            x (np.ndarray):  input instance.
+
+        Returns:
+            np.ndarray: class proportions as probability distribution.
+        """
+
+        return self.class_proportions
+
 
 class InternalNode(Node):
 
@@ -44,20 +66,28 @@ class InternalNode(Node):
     Class to represent an internal node.
 
     Arguments:
-        feature: index of the feature to base decision;
-        threshold: split point value.
+        feature (int): index of the feature to base decision;
+        threshold (float): split point value.
     """
 
     def __init__(self, feature: int, threshold: float):
         self.feature = feature
         self.threshold = threshold
 
+    def set_left(self, node: Node):
+        """Set the left child."""
+        self.left = node
+
+    def set_right(self, node: Node):
+        """Set the right child."""
+        self.right = node
+
     def predict(self, x: np.ndarray) -> int:
 
         """
         Predict a single instance.
 
-        Args:
+        Arguments:
             x (np.ndarray): input instance.
 
         Returns:
@@ -69,13 +99,22 @@ class InternalNode(Node):
 
         return self.right.predict(x)
 
-    def set_left(self, node: Node):
-        """Set the left child."""
-        self.left = node
+    def predict_proba(self, x: np.ndarray) -> np.ndarray:
 
-    def set_right(self, node: Node):
-        """Set the right child."""
-        self.right = node
+        """
+        Predict class probabilities of a single instance.
+
+        Args:
+            x (np.ndarray):  input instance.
+
+        Returns:
+            np.ndarray: class proportions as probability distribution.
+        """
+
+        if x[self.feature] < self.threshold:
+            return self.left.predict_proba(x)
+
+        return self.right.predict_proba(x)
 
 
 class DecisionTree(BaseClassifier):
@@ -84,25 +123,25 @@ class DecisionTree(BaseClassifier):
     Decision Tree classifier.
 
     Arguments:
-        max_depth (int, optional): _description_. Defaults to None.
-        random_state (int, optional): _description_. Defaults to 0.
+        max_depth (int, optional): maximum depth (heigth) of the tree. Defaults to None - unlimited.
     """
 
-    def __init__(self, max_depth: int = None, random_state: int = 0):
+    def __init__(self, max_depth: int = None):
         self.max_depth = max_depth
-        self.random_state = random_state
+        self.fitted = False
 
     @staticmethod
     def entropy(y: np.ndarray) -> float:
 
         """
         Calculate the entropy of classes of given samples.
+        Reference: https://en.wikipedia.org/wiki/Entropy_(information_theory)
 
         Arguments:
-            y: samples' labels.
+            y (np.ndarray): samples' labels.
 
         Returns:
-            entropy: entropy value.
+            entropy (float): entropy value.
         """
 
         _, counts = np.unique(y, return_counts=True)
@@ -111,43 +150,60 @@ class DecisionTree(BaseClassifier):
 
         return entropy
 
-    def build_node(self, X: np.ndarray, y: np.ndarray, features: np.ndarray):
-        """_summary_
+    def build_node(
+        self, X: np.ndarray, y: np.ndarray, features: List[int], depth: int
+    ) -> Node:
 
-        Args:
-            X (np.ndarray): _description_
-            y (np.ndarray): _description_
-            features (np.ndarray): _description_
+        """
+        Create a node given a set of samples and available features.
+
+        Arguments:
+            X (np.ndarray): matrix of training instances' features of shape (n_instances, n_features);
+            y (np.ndarray): instances' labels of shape (n_instances);
+            features (List[int]): list of available features (index).
 
         Returns:
-            _type_: _description_
+            node (Node): the create node. It can be a LeafNode or an InternalNode.
         """
-
 
         # no data
         if len(X) == 0:
-            return None
+            raise NoDataError(f"No samples to build a node.")
 
         # only one class
         if len(np.unique(y)) == 1:
-            return LeafNode(label=np.unique(y)[0])
+
+            unique_label = np.unique(y)[0]
+            proportions = np.bincount(y, minlength=len(self.classes))
+            return LeafNode(
+                label=unique_label,
+                class_proportions=proportions / proportions.sum(),
+            )
 
         # two or more classes
         else:
 
-            # no more features available - return leaf node using most frequent label
-            if len(features) == 0:
-                return LeafNode(label=np.argmax(np.bincount(y)))
+            # no more features available or max_depth - return leaf node using most frequent label
+            if len(features) == 0 or depth == self.max_depth:
+
+                most_frequent_label = np.argmax(np.bincount(y))
+                proportions = np.bincount(y, minlength=len(self.classes))
+
+                return LeafNode(
+                    label=most_frequent_label,
+                    class_proportions=proportions / proportions.sum(),
+                )
 
             best_splitpoints = {}
 
             # iterate over features and thresholds
             for feature in features:
 
+                # create array with possible split points
                 min_value, max_value = min(X[:, feature]), max(X[:, feature])
-                n_splitpoints = len(X) + 1
-                splitpoints = np.linspace(min_value, max_value, n_splitpoints)
-                information_gain = np.empty(n_splitpoints)
+                splitpoints = np.linspace(min_value, max_value, len(X) + 1)[1:-1]
+
+                information_gain = np.empty(len(splitpoints))
 
                 # iterate over possible split points
                 for idx, splitpoint in enumerate(splitpoints):
@@ -169,27 +225,27 @@ class DecisionTree(BaseClassifier):
             # create respective node
             node = InternalNode(feature=feature, threshold=splitpoint)
 
-            # check if there is data to build children
-            if (X[:, feature] < splitpoint).sum() > 0:
+            # remove selected feature from available list
+            update_available_features = list(filter(lambda f: f != feature, features))
 
-                left_child = self.build_node(
+            # set children
+            node.set_left(
+                self.build_node(
                     X[X[:, feature] < splitpoint],
                     y[X[:, feature] < splitpoint],
-                    list(
-                        filter(lambda f: f != feature, features)
-                    ),  # remove selected feature from available list
+                    update_available_features,
+                    depth + 1,
                 )
-                node.set_left(left_child)
+            )
 
-            if (X[:, feature] >= splitpoint).sum() > 0:
-                right_child = self.build_node(
+            node.set_right(
+                self.build_node(
                     X[X[:, feature] >= splitpoint],
                     y[X[:, feature] >= splitpoint],
-                    list(
-                        filter(lambda f: f != feature, features)
-                    ),  # remove selected feature from available list
+                    update_available_features,
+                    depth + 1,
                 )
-                node.set_right(right_child)
+            )
 
         return node
 
@@ -200,14 +256,18 @@ class DecisionTree(BaseClassifier):
         Create a tree to represent the decisions.
 
         Arguments:
-            X: matrix of training instances' features of shape (n_instances, n_features);
-            y: instances' labels of shape (n_instances).
+            X (np.ndarray): matrix of training instances' features of shape (n_instances, n_features);
+            y (np.ndarray): instances' labels of shape (n_instances).
 
         Returns:
             itself.
         """
 
-        self.tree = self.build_node(X, y, list(range(X.shape[1])))
+        self.classes = np.unique(y)
+
+        self.tree = self.build_node(X, y, list(range(X.shape[1])), 0)
+
+        self.fitted = True
 
         return self
 
@@ -217,12 +277,56 @@ class DecisionTree(BaseClassifier):
         Predict labels for the given set (X).
 
         Arguments:
+            X (np.ndarray): matrix of instances' features to evaluate of shape (n_instances, n_features).
+
+        Returns:
+            predictions (np.ndarray): predicted class labels for each instance on X.
+        """
+
+        predictions = np.array([self.tree.predict(x) for x in X])
+
+        return predictions
+
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+
+        """
+        Predict class labels probabilities for the given set (X).
+
+        Arguments:
             X: matrix of instances' features to evaluate of shape (n_instances, n_features).
 
         Returns:
-            predictions: predicted class labels for each instance on X.
+            predictions: class labels probabilities for each instance on X.
         """
 
-        predictions = [self.tree.predict(x) for x in X]
+        predictions = np.stack([self.tree.predict_proba(x) for x in X])
 
         return predictions
+
+    def save(self, path: str) -> bool:
+
+        super().save(path)
+
+        # with open(f"{path}/X.npy", "wb") as f:
+        #     np.save(f, self.X)
+
+        # with open(f"{path}/y.npy", "wb") as f:
+        #     np.save(f, self.y)
+
+        # with open(f"{path}/labels.npy", "wb") as f:
+        #     np.save(f, self.labels)
+
+        return True
+
+    def load(self, path: str):
+
+        # with open(f"{path}/X.npy", "rb") as f:
+        #     self.X = np.load(f)
+
+        # with open(f"{path}/y.npy", "rb") as f:
+        #     self.y = np.load(f)
+
+        # with open(f"{path}/labels.npy", "rb") as f:
+        #     self.labels = np.load(f)
+
+        return self
