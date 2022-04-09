@@ -18,6 +18,10 @@ class PreProcessTask(luigi.Task):
 
         logger.info(f"Start PreProcess Task.")
 
+        # read local data, but we could insert a process
+        # to retrieve the data from a private source
+        # download it and run the following commands
+
         logger.info(f"Read provided data: {self.in_file}")
         data = pd.read_csv(f"{self.in_file}")
 
