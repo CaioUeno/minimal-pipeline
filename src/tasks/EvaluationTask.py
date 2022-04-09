@@ -5,10 +5,10 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import f1_score
 from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import OneHotEncoder
 from src.models.NaiveBayes import GaussianNaiveBayes
 from src.models.NearestNeighbors import NearestNeighbors
 from src.tasks.PreProcessTask import PreProcessTask
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -16,10 +16,12 @@ logger = logging.getLogger(__name__)
 class EvaluationTask(luigi.Task):
 
     in_file = luigi.Parameter()
-    best_model_path = luigi.Parameter()
 
     def requires(self):
         return PreProcessTask(in_file=self.in_file)
+        
+    def output(self):
+        return luigi.LocalTarget(f"best_model.zip")
 
     def fit_and_save(self, best_model_name: str, X: np.ndarray, y: np.ndarray):
 
@@ -33,9 +35,9 @@ class EvaluationTask(luigi.Task):
             raise ValueError(f"Uknown model: {best_model_name}.")
 
         best_model.fit(X=X.values, y=y.values)
-        # best_model.save(self.model_path)
+        best_model.save(f"best_model")
 
-        return best_model
+        return best_model.compress(f"best_model")
 
     def run(self):
 
@@ -46,14 +48,17 @@ class EvaluationTask(luigi.Task):
 
         X, y = evaluation_df.drop("label", axis=1), evaluation_df["label"].copy()
 
-        models = [GaussianNaiveBayes(), NearestNeighbors(k=5, metric="euclidean", n_jobs=-1)]
+        models = [
+            GaussianNaiveBayes(),
+            NearestNeighbors(k=3, metric="euclidean", n_jobs=-1),
+        ]
 
-        logger.info(f"")
         skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=0)
 
         metrics = []
 
-        for fold, (train_index, test_index) in enumerate(skf.split(X, y)):
+        logger.info(f"Start cross-validation.")
+        for fold, (train_index, test_index) in tqdm(enumerate(skf.split(X, y))):
 
             # split into train/test
             X_train, X_test = X.iloc[train_index, :], X.iloc[test_index, :]
@@ -64,7 +69,8 @@ class EvaluationTask(luigi.Task):
                 model.fit(X=X_train.values, y=y_train.values)
                 preds = model.predict(X=X_test.values)
 
-                metrics.append({
+                metrics.append(
+                    {
                         "classifier": type(model).__name__,
                         "fold": fold,
                         "f1_score": f1_score(
@@ -73,16 +79,15 @@ class EvaluationTask(luigi.Task):
                             average="weighted",
                             zero_division=0,
                         ),
-                    })
-
+                    }
+                )
 
         metrics = pd.DataFrame(metrics)
-        # print(metrics)
+
         avg_performance = metrics.groupby("classifier")["f1_score"].mean()
         best_model_name = avg_performance.idxmax()
 
-        self.fit_and_save(best_model_name, X, y)
+        logger.info(f"Best model: {best_model_name}")
 
-        # # one hot encode labels
-        # enc = OneHotEncoder()
-        # y_preprocessed = enc.fit_transform(y.values)
+        logger.info(f"Fit {best_model_name} using entire data, save  it and compress.")
+        self.fit_and_save(best_model_name, X, y)
