@@ -2,7 +2,7 @@
 .venv/
 
 # data
-data/
+# data/
 
 # caches
 __pycache__/
