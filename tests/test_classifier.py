@@ -11,7 +11,7 @@ from src.models.NearestNeighbors import NearestNeighbors
 
 @pytest.fixture
 def data():
-    return pd.read_csv("data/preprocessed.csv")
+    return pd.read_csv("tests/preprocessed.csv")
 
 
 @pytest.fixture
