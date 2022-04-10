@@ -31,14 +31,20 @@ jobs:
             pip install -r requirements-test.txt
             pytest -v --disable-warnings
 
-  # build:
-  #   docker:
-  #     - image: cimg/base:stable
-  #   steps: 
-  #     - checkout
-  #     - run:
-  #         name: "Build docker image"
-  #         command: "PYTHONPATH="." pytest -v --disable-warnings"
+  build:
+    docker:
+      - image: docker:17.05.0-ce-git
+
+    steps: 
+      - checkout
+      - setup_remote_docker:
+        docker_layer_caching: true
+      - run:
+          name: "Build docker image"
+          command: |
+            docker build -t $DOCKER_USERNAME/minimal-pipeline .
+            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+            docker push $DOCKER_USERNAME/minimal-pipeline
 
 
 
@@ -52,12 +58,12 @@ workflows:
           branches:
             only: 
               master
-      # - build:
-      #   requires:
-      #     - test-models
-      #   filters:
-      #     branches:
-      #       only: 
-      #         master
+      - build:
+        requires:
+          - test-models
+        filters:
+          branches:
+            only: 
+              master
 
       
