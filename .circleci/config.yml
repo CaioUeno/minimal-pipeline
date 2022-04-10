@@ -1,30 +1,50 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/2.0/configuration-reference
 version: 2.1
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  say-hello:
-    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+  test-models:
     docker:
-      - image: cimg/base:stable
-    # Add steps to the job
-    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+      - image: cimg/python:3.8.10
+    environment:
+      PYTHONPATH: . 
     steps:
       - checkout
       - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
+          name: "Test models"
+          command: |
+            pip install -r requirements-test.txt
+            pytest -v --disable-warnings
 
-# Invoke jobs via workflows
-# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
+  build:
+    docker:
+      - image: docker:17.05.0-ce-git
+    environment:
+      PROJECT_NAME: minimal-pipeline
+
+    steps: 
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: "Build docker image"
+          command: |
+            docker build -t $DOCKER_USERNAME/PROJECT_NAME .
+            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+            docker push $DOCKER_USERNAME/PROJECT_NAME
+
+
 workflows:
-  say-hello-workflow:
+  main-workflow:
     jobs:
-      - say-hello:
-        filters:
-          branches:
-            only: 
-              master
+      - test-models:
+          filters:
+            branches:
+              only: 
+                master
+      - build:
+          requires:
+            - test-models
+          filters:
+            branches:
+              only: 
+                master
+
+      

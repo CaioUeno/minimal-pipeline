@@ -1,4 +1,17 @@
+from abc import abstractmethod
+import os
+from shutil import make_archive
+from zipfile import ZipFile
+
 import numpy as np
+
+class NotMatchingLengthError(Exception):
+    """Raised when X and y have different lengths."""
+    pass
+
+class FitError(Exception):
+    """Raised when classifier was not fitted (some actions require it)."""
+    pass
 
 
 class BaseClassifier:
@@ -30,8 +43,37 @@ class BaseClassifier:
             raise TypeError(f"y must be of type np.ndarray but is {type(y)}")
 
         if len(X) != len(y):
-            raise ValueError(
+            raise NotMatchingLengthError(
                 f"X and y must have same length: X ({len(X)}) and y ({len(y)})"
             )
 
         return True
+
+    def save(self, path: str) -> bool:
+
+        if not self.fitted:
+            raise FitError(f"Classifier must be fitted before it can be saved.")
+
+        if not os.path.isdir(path):
+            os.mkdir(path)
+            
+        return True
+
+    def compress(self, path: str) -> str:
+        return make_archive(path, "zip", path)
+        
+    def uncompress(self, path: str) -> str:
+
+        if ".zip" not in path:
+            return ""
+
+        uncompressed_path = path.split(".zip")[0]
+
+        with ZipFile(path, "r") as zip:
+            zip.extractall(uncompressed_path)
+
+        return uncompressed_path
+
+    @abstractmethod
+    def load(self, path: str):
+        pass

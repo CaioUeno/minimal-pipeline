@@ -1,3 +1,14 @@
+# virtual env
 .venv/
+
+# data
 data/
+
+# caches
 __pycache__/
+.pytest_cache/
+
+# files
+*.npy
+*.zip
+*.log

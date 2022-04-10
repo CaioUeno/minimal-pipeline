@@ -1,3 +1,4 @@
+import os
 from statistics import mode
 from scipy.special import softmax
 from typing import Callable, Union
@@ -44,6 +45,7 @@ class NearestNeighbors(BaseClassifier):
             else NearestNeighbors.pre_defined_metrics(metric)
         )
         self.n_jobs = n_jobs
+        self.fitted = False
 
     @staticmethod
     def pre_defined_metrics(metric: str) -> Callable[[np.ndarray, np.ndarray], float]:
@@ -90,6 +92,8 @@ class NearestNeighbors(BaseClassifier):
 
         # store metadata as well
         self.labels = np.unique(y)
+
+        self.fitted = True
 
         return self
 
@@ -161,3 +165,31 @@ class NearestNeighbors(BaseClassifier):
             predictions[idx, :] = softmax(labels_count)
 
         return predictions
+
+    def save(self, path: str) -> bool:
+
+        super().save(path)
+
+        with open(f"{path}/X.npy", "wb") as f:
+            np.save(f, self.X)
+
+        with open(f"{path}/y.npy", "wb") as f:
+            np.save(f, self.y)
+
+        with open(f"{path}/labels.npy", "wb") as f:
+            np.save(f, self.labels)
+
+        return True
+
+    def load(self, path: str):
+
+        with open(f"{path}/X.npy", "rb") as f:
+            self.X = np.load(f)
+
+        with open(f"{path}/y.npy", "rb") as f:
+            self.y = np.load(f)
+
+        with open(f"{path}/labels.npy", "rb") as f:
+            self.labels = np.load(f)
+
+        return self
