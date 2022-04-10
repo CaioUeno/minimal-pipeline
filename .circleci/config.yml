@@ -21,11 +21,13 @@ jobs:
   test-models:
     docker:
       - image: cimg/base:stable
+    environment:
+      PYTHONPATH: . 
     steps:
       - checkout
       - run:
           name: "Test models"
-          command: "PYTHONPATH="." pytest -v --disable-warnings"
+          command: "pytest -v --disable-warnings"
 
   # build:
   #   docker:
