@@ -16,7 +16,7 @@ jobs:
 
   build:
     docker:
-      - image: circleci/cci-demo-docker-primary:0.0.1
+      - image: cimg/python:3.8.10
         auth:
           username: $DOCKER_USERNAME
           password: $DOCKER_PASSWORD
