@@ -16,7 +16,11 @@ jobs:
 
   build:
     docker:
-      - image: docker:17.05.0-ce-git
+      - image: circleci/cci-demo-docker-primary:0.0.1
+        auth:
+          username: $DOCKER_USERNAME
+          password: $DOCKER_PASSWORD
+
     environment:
       PROJECT_NAME: minimal-pipeline
 
@@ -27,8 +31,8 @@ jobs:
           name: "Build docker image"
           command: |
             docker build -t $DOCKER_USERNAME/$PROJECT_NAME .
-            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-            docker push $DOCKER_USERNAME/$PROJECT_NAME
+            docker login
+            docker push $DOCKER_USERNAME/$PROJECT_NAME:latest
 
 
 workflows:
