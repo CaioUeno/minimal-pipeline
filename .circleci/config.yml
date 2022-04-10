@@ -17,7 +17,7 @@ jobs:
   build:
     docker:
       - image: docker:17.05.0-ce-git
-    enviroment:
+    environment:
       PROJECT_NAME: minimal-pipeline
 
     steps: 
