@@ -53,16 +53,16 @@ workflows:
   main-workflow:
     jobs:
       - test-models:
-        filters:
-          branches:
-            only: 
-              master
+          filters:
+            branches:
+              only: 
+                master
       - build:
-        requires:
-          - test-models
-        filters:
-          branches:
-            only: 
-              master
+          requires:
+            - test-models
+          filters:
+            branches:
+              only: 
+                master
 
       
