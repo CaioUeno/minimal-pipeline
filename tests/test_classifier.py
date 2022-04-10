@@ -19,7 +19,7 @@ def models():
     return [
         NearestNeighbors(k=4, metric="euclidean", n_jobs=-1),
         GaussianNaiveBayes(priors=None),
-        DecisionTree(max_depth=2),
+        # DecisionTree(max_depth=2),
     ]
 
 
