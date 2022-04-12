@@ -145,7 +145,7 @@ class LogisticRegression(BaseClassifier):
         """
         Save model's parameters.
 
-        Args:
+        Arguments:
             path (str): directory's path to save the model.
 
         Returns:
@@ -170,7 +170,7 @@ class LogisticRegression(BaseClassifier):
         """
         Load model from directory path.
 
-        Args:
+        Arguments:
             path (str): directory's path where the model's parameters are.
 
         Returns:
