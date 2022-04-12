@@ -1,4 +1,5 @@
 import logging
+import pickle
 
 import luigi
 import pandas as pd
@@ -48,3 +49,6 @@ class PreProcessTask(luigi.Task):
         df.to_csv(f"data/preprocessed.csv", index=False)
 
         logger.info(f"Preprocessed data written.")
+
+        # save standard scaler
+        pickle.dump(scaler, open("standard-scaler.pkl", "wb"))
