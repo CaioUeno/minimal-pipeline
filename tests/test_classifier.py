@@ -19,7 +19,8 @@ def models():
     return [
         NearestNeighbors(k=4, metric="euclidean", n_jobs=-1),
         GaussianNaiveBayes(priors=None),
-        # DecisionTree(max_depth=2),
+        DecisionTree(max_depth=2),
+        LogisticRegression(),
     ]
 
 
@@ -77,6 +78,39 @@ def test_save(data, models):
         path = f"{type(model).__name__}"
 
         model.save(path)
-        assert len(os.listdir(path)) > 0
 
+        assert len(os.listdir(path)) > 0
         assert model.compress(path).split("/")[-1] == f"{path}.zip"
+
+        # clean local project
+        os.system(f"rm -r {path}")
+        os.remove(f"{path}.zip")
+
+
+def test_load(data, models):
+
+    X = data.drop("label", axis=1).values
+    y = data["label"].values
+
+    for model in models:
+
+        print(f"{type(model).__name__}")
+
+        model.fit(X, y)
+
+        preds = model.predict(X)
+        preds_proba = model.predict_proba(X)
+
+        path = f"{type(model).__name__}"
+
+        model.save(path)
+        model.compress(path)
+        model.uncompress(f"{path}.zip")
+        model.load(path)
+
+        assert all(preds == model.predict(X))
+        assert (preds_proba == model.predict_proba(X)).all()
+
+        # clean local project
+        os.system(f"rm -r {path}")
+        os.remove(f"{path}.zip")

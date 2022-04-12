@@ -12,15 +12,10 @@ jobs:
           name: "Test models"
           command: |
             pip install -r requirements-test.txt
-            pytest -v --disable-warnings
-
-  build:
+            pytest -v --disable-warnings --durations=0
+  build-container:
     docker:
       - image: cimg/python:3.8.10
-        auth:
-          username: $DOCKER_USERNAME
-          password: $DOCKER_PASSWORD
-
     environment:
       PROJECT_NAME: minimal-pipeline
 
@@ -34,21 +29,18 @@ jobs:
             echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
             docker push $DOCKER_USERNAME/$PROJECT_NAME:latest
 
-
 workflows:
-  main-workflow:
+  main:
     jobs:
       - test-models:
           filters:
             branches:
               only: 
                 master
-      - build:
+      - build-container:
           requires:
             - test-models
           filters:
             branches:
               only: 
                 master
-
-      
