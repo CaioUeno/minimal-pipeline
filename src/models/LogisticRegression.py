@@ -11,87 +11,100 @@ class LogisticRegression(BaseClassifier):
     def __init__(
         self,
     ):
-        pass
+        self.fitted = False
 
     @staticmethod
-    def loss(y_true: np.ndarray, y_pred: np.ndarray):
+    def loss(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 
-        return -(y_true * np.log(y_pred)).sum(axis=1)
+        """
+        Calculate the loss function.
+
+        Arguments:
+            y_true (np.ndarray): expected output;
+            y_pred (np.ndarray): model's predicted output.
+
+        Returns:
+            loss (float): loss value.
+        """
+
+        loss = -(y_true * np.log(y_pred)).sum(axis=1)
+
+        return loss
 
     def fit(
         self,
         X: np.ndarray,
         y: np.ndarray,
-        batch_size: int = 32,
+        batch_size: int = 16,
         epochs: int = 100,
-        learning_rate: float = 0.01,
+        learning_rate: float = 0.1,
         shuffle: bool = True,
-        verbose: bool = True,
+        verbose: bool = False,
     ):
 
         """
-        Fit model
+        Fit model using back propagation.
 
         Arguments:
-            X: matrix of training instances' features of shape (n_instances, n_features);
-            y: instances' labels as one-hot encoding of shape (n_instances);
-            batch_size: number of instances in a batch;
-            epochs: number of epochs to iterate;
-            learning_rate: pace to control update rate;
-            shuffle: whether to shuffle data before training;
-            verbose: flag to indicate whether to show a progress bar or not.
+            X (np.ndarray): matrix of training instances' features of shape (n_instances, n_features);
+            y (np.ndarray): instances' labels of shape (n_instances);
+            batch_size (int, optional): number of instances in a batch. Defaults to 32.
+            epochs (int, optional): number of epochs to iterate. Defaults to 100.
+            learning_rate (float, optional): pace to control update. Defaults to 0.1.
+            shuffle (bool, optional): whether to shuffle data before training. Defaults to False.
+            verbose (bool, optional): flag to indicate whether to show a progress bar or not. Defaults to False.
 
         Returns:
-            training_loss: ;
-            evaluation_loss: ;
-
+            itself.
         """
 
         # check whether input is valid or not
         self.check_X_y(X, y)
 
-        # use new vars to avoid changing the original data (X and y)
+        # shuffle input
         if shuffle:
-            p = np.random.permutation(len(X))
-            X_train, y_train = X[p].copy(), y[p].copy()
-
+            indices = np.random.permutation(len(X))
         else:
-            X_train, y_train = X.copy(), y.copy()
+            indices = np.array(range(len(X)))
 
-        y_train = np.stack([np.bincount([label], minlength=max(y) + 1) for label in y])
+        # use new vars to avoid changing the original data (X and y)
+        X_train, y_train = X[indices].copy(), y[indices].copy()
+
+        # transform into one hot encoding
+        y_train = np.stack(
+            [np.bincount([label], minlength=max(y) + 1) for label in y_train]
+        )
+
         self.classes = np.unique(y)
+        self.n_classes = len(self.classes)
 
         # initialize weights and biases - normal distribution between [-1, 1]
-        self.weights = 2 * np.random.random((X.shape[1], len(self.classes))) - 1
-        self.bias = np.random.random(len(self.classes)) - 0.5
+        self.weights = 2 * np.random.random((self.n_classes, X.shape[1])) - 1
+        self.bias = 2 * np.random.random((self.n_classes, 1)) - 1
 
         # iterate over epochs
-        for epoch in tqdm(range(epochs)) if verbose else range(epochs):
+        for _ in tqdm(range(epochs), unit="epoch") if verbose else range(epochs):
 
             # iterate over batches
             for i in range(0, len(X_train), batch_size):
 
-                # feed forward
-                lr = X_train[i : i + batch_size, :] @ self.weights + self.bias
+                # get instances for batch i
+                x_batch = X_train[i : i + batch_size, :]
+                y_batch = y_train[i : i + batch_size, :]
 
-                # derivative
-                delta = X_train[i : i + batch_size, :].T @ (
-                    softmax(lr) - y_train[i : i + batch_size, :]
-                )
+                # feed forward
+                lr = self.weights @ x_batch.T + self.bias
+
+                # weights derivative
+                wdelta = (softmax(lr, axis=0) - y_batch.T) @ x_batch
 
                 # add learning rate and smooth by batch_size
-                delta = learning_rate * delta / batch_size
+                wdelta = learning_rate * wdelta / batch_size
 
-                print(self.weights)
-                self.weights -= delta
-                print(self.weights)
-                print(delta)
+                # update
+                self.weights -= wdelta
 
-                print(
-                    LogisticRegression.loss(
-                        y_train[i : i + batch_size, :], softmax(lr)
-                    ).mean()
-                )
+        self.fitted = True
 
         return self
 
@@ -101,13 +114,13 @@ class LogisticRegression(BaseClassifier):
         Predict class labels probabilities for the given set (X).
 
         Arguments:
-            X: matrix of instances' features to evaluate of shape (n_instances, n_features).
+            X (np.ndarray): matrix of instances' features to evaluate of shape (n_instances, n_features).
 
         Returns:
-            predictions: class labels probabilities for each instance on X.
+            predictions (np.ndarray): class labels probabilities for each instance on X.
         """
 
-        predictions = softmax(X @ self.weights + self.bias, axis=1)
+        predictions = softmax(self.weights @ X.T + self.bias, axis=1).T
 
         return predictions
 
@@ -117,12 +130,62 @@ class LogisticRegression(BaseClassifier):
         Predict labels for the given set (X).
 
         Arguments:
-            X: matrix of instances' features to evaluate of shape (n_instances, n_features).
+            X (np.ndarray): matrix of instances' features to evaluate of shape (n_instances, n_features).
 
         Returns:
-            predictions: predicted class labels for each instance on X.
+            predictions (np.ndarray): predicted class labels for each instance on X.
         """
 
         predictions = self.predict_proba(X).argmax(axis=1)
 
         return predictions
+
+    def save(self, path: str) -> bool:
+
+        """
+        Save model's parameters.
+
+        Args:
+            path (str): directory's path to save the model.
+
+        Returns:
+            bool: whether the model was saved successfully or not.
+        """
+
+        super().save(path)
+
+        with open(f"{path}/classes.npy", "wb") as f:
+            np.save(f, self.classes)
+
+        with open(f"{path}/weights.npy", "wb") as f:
+            np.save(f, self.weights)
+
+        with open(f"{path}/bias.npy", "wb") as f:
+            np.save(f, self.bias)
+
+        return True
+
+    def load(self, path: str):
+
+        """
+        Load model from directory path.
+
+        Args:
+            path (str): directory's path where the model's parameters are.
+
+        Returns:
+            itself.
+        """
+
+        with open(f"{path}/classes.npy", "rb") as f:
+            self.classes = np.load(f)
+
+        self.n_classes = len(self.classes)
+
+        with open(f"{path}/weights.npy", "rb") as f:
+            self.weights = np.load(f)
+
+        with open(f"{path}/bias.npy", "rb") as f:
+            self.bias = np.load(f)
+
+        return self
