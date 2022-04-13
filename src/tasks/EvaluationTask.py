@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import f1_score
 from sklearn.model_selection import StratifiedKFold
+from src.models.DecisionTree import DecisionTree
+from src.models.LogisticRegression import LogisticRegression
 from src.models.NaiveBayes import GaussianNaiveBayes
 from src.models.NearestNeighbors import NearestNeighbors
 from src.tasks.PreProcessTask import PreProcessTask
@@ -19,7 +21,7 @@ class EvaluationTask(luigi.Task):
 
     def requires(self):
         return PreProcessTask(in_file=self.in_file)
-        
+
     def output(self):
         return luigi.LocalTarget(f"best_model.zip")
 
@@ -29,7 +31,13 @@ class EvaluationTask(luigi.Task):
             best_model = GaussianNaiveBayes()
 
         elif best_model_name == "NearestNeighbors":
-            best_model = NearestNeighbors(k=5, metric="euclidean", n_jobs=-1)
+            best_model = NearestNeighbors(k=3, metric="euclidean", n_jobs=-1)
+
+        elif best_model_name == "DecisionTree":
+            best_model = DecisionTree(max_depth=3)
+
+        elif best_model_name == "LogisticRegression":
+            best_model = LogisticRegression()
 
         else:
             raise ValueError(f"Uknown model: {best_model_name}.")
@@ -51,6 +59,8 @@ class EvaluationTask(luigi.Task):
         models = [
             GaussianNaiveBayes(),
             NearestNeighbors(k=3, metric="euclidean", n_jobs=-1),
+            DecisionTree(max_depth=3),
+            LogisticRegression(),
         ]
 
         skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=0)
@@ -58,7 +68,9 @@ class EvaluationTask(luigi.Task):
         metrics = []
 
         logger.info(f"Start cross-validation.")
-        for fold, (train_index, test_index) in tqdm(enumerate(skf.split(X, y))):
+        for fold, (train_index, test_index) in tqdm(
+            enumerate(skf.split(X, y)), total=10
+        ):
 
             # split into train/test
             X_train, X_test = X.iloc[train_index, :], X.iloc[test_index, :]
@@ -85,6 +97,9 @@ class EvaluationTask(luigi.Task):
         metrics = pd.DataFrame(metrics)
 
         avg_performance = metrics.groupby("classifier")["f1_score"].mean()
+        avg_performance.round(4).to_csv("report.csv", index=True)
+        logger.info(f"Report saved as report.csv")
+
         best_model_name = avg_performance.idxmax()
 
         logger.info(f"Best model: {best_model_name}")

@@ -32,3 +32,4 @@ class DeployTask(luigi.Task):
         # fake deploy
         # nothing to do here since we already have
         # our zip file containing our model
+        # and the scaler
