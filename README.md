@@ -75,7 +75,7 @@ The following models will be implemented:
 
     To find the **best split point**, it uses the information gain formula:
 
-    ![Untitled](images/decision_tree_ig.png)
+    ![Informartion gain.](images/decision_tree_ig.png)
 
     where H is the following entropy function:
 
@@ -89,15 +89,15 @@ The following models will be implemented:
 
     This algorithm uses the **Bayes theorem** to calculate probabilities and make predictions. It is called “**naive**” because it assumes that features are **conditionally independent** between every possible pair. The following image shows the theorem:
 
-    ![Untitled](images/naive_bayes_theorem.png)
+    ![Naive Bayes theorem](images/naive_bayes_theorem.png)
 
     We can use a feature vector as $x$ and replace $y$ for a known class and then we obtain a probability estimator for each class. Since $P(x)$ is constant, we can use the following equivalent formula:
 
-    ![Untitled](images/naive_bayes_aprox.png)
+    ![Naive Bayes aproximation](images/naive_bayes_aprox.png)
 
     $P(y)$ can be estimated using its frequency in the training set. The **Multinomial Naive Baye**s uses **frequency** to estimate $P(x|y)$ as well. But the **Gaussian** assumes that the data has a **normal distribution** and calculate $P(x|y)$ as following:
 
-    ![Untitled](images/naive_bayes_gaussian.png)
+    ![Gaussian Distribution](images/naive_bayes_gaussian.png)
 
     We also can apply a log function to those probabilities in order to have a more stable result - instead of multiplication we would have a sum. Then, we apply an exponential function before returning $P(y|x)$.
 
@@ -107,7 +107,7 @@ They will support **only multi-class** problems (not multi-label).
 
 Every model inherits from a class called **BaseClassifier**. It implements common methods such as checks, compress and uncompress folder. Every model must implement the following methods: **fit**, **predict**, **predict_proba**, **save** and **load**. The following image describes their definition:
 
-OOP img
+![UML](images/models_uml.png)
 
 ---
 
@@ -158,7 +158,7 @@ PYTHONPATH="." luigi --module src.tasks.DeployTask DeployTask --in-file data/iri
 
 ### Docker
 
-To use a docker container  to run the luigi tasks:
+To build the docker container and run the luigi tasks:
 
 ```bash
 # build image
@@ -166,4 +166,14 @@ sudo docker build -t CUSTOM_NAME .
 
 # run
 sudo docker run CUSTOM_NAME
+```
+
+To simply run the public available container:
+
+```bash
+# pull image
+sudo docker pull caiolueno/minimal-pipeline:latest
+
+# run
+sudo docker run caiolueno/minimal-pipeline:latest
 ```
