@@ -9,7 +9,7 @@ class GaussianNaiveBayes(BaseClassifier):
     Naive Bayes algorithm.
 
     Arguments:
-        priors: classes' prior probabilities.
+        priors (np.ndarray): classes' prior probabilities.
     """
 
     def __init__(self, priors: np.ndarray = None):
@@ -21,10 +21,9 @@ class GaussianNaiveBayes(BaseClassifier):
         """
         Fit the model using the provided training data (X, y).
         Estimate priors if not provided and for each class calculate mean and variance of features.
-
         Arguments:
-            X: matrix of training instances' features of shape (n_instances, n_features);
-            y: instances' labels of shape (n_instances).
+            X (np.ndarray): matrix of training instances' features of shape (n_instances, n_features);
+            y (np.ndarray): instances' labels of shape (n_instances).
 
         Returns:
             itself.
@@ -58,10 +57,10 @@ class GaussianNaiveBayes(BaseClassifier):
         Predict class labels probabilities for the given set (X).
 
         Arguments:
-            X: matrix of instances' features to evaluate of shape (n_instances, n_features).
+            X (np.ndarray): matrix of instances' features to evaluate of shape (n_instances, n_features).
 
         Returns:
-            predictions: class labels probabilities for each instance on X.
+            predictions (np.ndarray): class labels probabilities for each instance on X.
         """
 
         likelihood = np.zeros((X.shape[0], len(self.classes)), dtype=float)
@@ -84,10 +83,10 @@ class GaussianNaiveBayes(BaseClassifier):
         Predict labels for the given set (X).
 
         Arguments:
-            X: matrix of instances' features to evaluate of shape (n_instances, n_features).
+            X (np.ndarray): matrix of instances' features to evaluate of shape (n_instances, n_features).
 
         Returns:
-            predictions: predicted class labels for each instance on X.
+            predictions (np.ndarray): predicted class labels for each instance on X.
         """
 
         predictions = self.predict_proba(X).argmax(axis=1)
@@ -95,6 +94,16 @@ class GaussianNaiveBayes(BaseClassifier):
         return predictions
 
     def save(self, path: str) -> bool:
+
+        """
+        Save model's parameters.
+
+        Arguments:
+            path (str): directory's path to save the model.
+
+        Returns:
+            bool: whether the model was saved successfully or not.
+        """
 
         super().save(path)
 
@@ -113,6 +122,16 @@ class GaussianNaiveBayes(BaseClassifier):
         return True
 
     def load(self, path: str):
+
+        """
+        Load model from directory path.
+
+        Arguments:
+            path (str): directory's path where the model's parameters are.
+
+        Returns:
+            itself.
+        """
 
         with open(f"{path}/priors.npy", "rb") as f:
             self.priors = np.load(f)

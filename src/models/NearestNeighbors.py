@@ -1,21 +1,19 @@
-import os
 from statistics import mode
-from scipy.special import softmax
 from typing import Callable, Union
 
 import numpy as np
 from joblib import Parallel, delayed
+from scipy.special import softmax
+from src.models.BaseClassifier import BaseClassifier
 from tqdm import tqdm
 
-from src.models.BaseClassifier import BaseClassifier
 
-
-def euclidean(a: np.ndarray, b: np.ndarray):
+def euclidean(a: np.ndarray, b: np.ndarray) -> float:
     """Euclidean distance."""
     return np.linalg.norm(a - b)
 
 
-def manhattan(a: np.ndarray, b: np.ndarray):
+def manhattan(a: np.ndarray, b: np.ndarray) -> float:
     """Manhattan distance."""
     return abs(a - b).sum()
 
@@ -26,9 +24,9 @@ class NearestNeighbors(BaseClassifier):
     Nearest Neighbors algorithm.
 
     Arguments:
-        k: number of neighbors to use;
-        metric: name of or a function to calculate the distance between two instances;
-        n_jobs: number of treads to use (parallelism).
+        k (int, optional): number of neighbors to use. Defaults to 3.
+        metric (Union[str, Callable[[np.ndarray, np.ndarray], float]], optional): name of or a function to calculate the distance between two instances. Defaults to "euclidean".
+        n_jobs (int, optional):  number of treads to use (parallelism). Defaults to 1.
     """
 
     def __init__(
@@ -53,7 +51,7 @@ class NearestNeighbors(BaseClassifier):
         """
         Return function given an known name (string).
 
-        Args:
+        Arguments:
             metric (str): name of a known metric distance.
 
         Raises:
@@ -71,13 +69,12 @@ class NearestNeighbors(BaseClassifier):
             raise NotImplementedError(f"Unknown metric name.")
 
     def fit(self, X: np.ndarray, y: np.ndarray):
-
         """
         Fit the model using the provided training data (X, y).
 
         Arguments:
-            X: matrix of training instances' features of shape (n_instances, n_features);
-            y: instances' labels of shape (n_instances).
+            X (np.ndarray): matrix of training instances' features of shape (n_instances, n_features);
+            y (np.ndarray): instances' labels of shape (n_instances).
 
         Returns:
             itself.
@@ -97,17 +94,17 @@ class NearestNeighbors(BaseClassifier):
 
         return self
 
-    def predict(self, X: np.ndarray, verbose: bool = True) -> np.ndarray:
+    def predict(self, X: np.ndarray, verbose: bool = False) -> np.ndarray:
 
         """
         Predict labels for the given set (X).
 
         Arguments:
-            X: matrix of instances' features to evaluate of shape (n_instances, n_features);
-            verbose: flag to indicate whether to show a progress bar or not.
+            X (np.ndarray): matrix of instances' features to evaluate of shape (n_instances, n_features);
+            verbose (bool, optional): flag to indicate whether to show a progress bar or not.. Defaults to False.
 
         Returns:
-            predictions: predicted class labels for each instance on X.
+            predictions (np.ndarray): predicted class labels for each instance on X.
         """
 
         predictions = np.empty(len(X))
@@ -136,11 +133,11 @@ class NearestNeighbors(BaseClassifier):
         Predict class labels probabilities for the given set (X).
 
         Arguments:
-            X: matrix of instances' features to evaluate of shape (n_instances, n_features);
-            verbose: flag to indicate whether to show a progress bar or not.
+            X (np.ndarray): matrix of instances' features to evaluate of shape (n_instances, n_features);
+            verbose (bool, optional): flag to indicate whether to show a progress bar or not.. Defaults to True.
 
         Returns:
-            predictions: class labels probabilities for each instance on X.
+            predictions (np.ndarray): class labels probabilities for each instance on X.
         """
 
         predictions = np.empty((len(X), len(self.labels)))
@@ -168,6 +165,16 @@ class NearestNeighbors(BaseClassifier):
 
     def save(self, path: str) -> bool:
 
+        """
+        Save model's parameters.
+
+        Arguments:
+            path (str): directory's path to save the model.
+
+        Returns:
+            bool: whether the model was saved successfully or not.
+        """
+
         super().save(path)
 
         with open(f"{path}/X.npy", "wb") as f:
@@ -182,6 +189,16 @@ class NearestNeighbors(BaseClassifier):
         return True
 
     def load(self, path: str):
+
+        """
+        Load model from directory path.
+
+        Arguments:
+            path (str): directory's path where the model's parameters are.
+
+        Returns:
+            itself.
+        """
 
         with open(f"{path}/X.npy", "rb") as f:
             self.X = np.load(f)
