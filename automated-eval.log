@@ -1,0 +1,13 @@
+2022-04-13 15:40:59,330 - luigi - INFO - logging configured by default settings
+2022-04-13 15:40:59,335 - src.tasks.PreProcessTask - INFO - Start PreProcess Task.
+2022-04-13 15:40:59,335 - src.tasks.PreProcessTask - INFO - Read provided data: data/iris.csv
+2022-04-13 15:40:59,337 - src.tasks.PreProcessTask - INFO - Scale features.
+2022-04-13 15:40:59,339 - src.tasks.PreProcessTask - INFO - Encode string labels to integers.
+2022-04-13 15:40:59,340 - src.tasks.PreProcessTask - INFO - Preprocessed data written.
+2022-04-13 15:40:59,341 - src.tasks.EvaluationTask - INFO - Start Evaluation Task.
+2022-04-13 15:40:59,342 - src.tasks.EvaluationTask - INFO - Read preprocessed data: data/preprocessed.csv
+2022-04-13 15:40:59,343 - src.tasks.EvaluationTask - INFO - Start cross-validation.
+2022-04-13 15:41:01,850 - src.tasks.EvaluationTask - INFO - Report saved as report.csv
+2022-04-13 15:41:01,851 - src.tasks.EvaluationTask - INFO - Best model: NearestNeighbors
+2022-04-13 15:41:01,851 - src.tasks.EvaluationTask - INFO - Fit NearestNeighbors using entire data, save  it and compress.
+2022-04-13 15:41:01,853 - src.tasks.DeployTask - INFO - Start Deploy Task.

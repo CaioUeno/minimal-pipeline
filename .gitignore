@@ -11,6 +11,6 @@ __pycache__/
 # files
 *.npy
 *.zip
-*.log
 *.json
 *.pkl
+*.drawio
