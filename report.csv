@@ -1,0 +1,5 @@
+classifier,f1_score
+DecisionTree,0.8419
+GaussianNaiveBayes,0.7698
+LogisticRegression,0.8446
+NearestNeighbors,0.939
